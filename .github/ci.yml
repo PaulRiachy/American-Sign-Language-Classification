@@ -1,0 +1,37 @@
+name: Notebook lint & dependency check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install linting tools
+        run: pip install nbformat nbconvert
+
+      - name: Validate notebook JSON
+        run: |
+          python - <<'EOF'
+          import json, sys, pathlib
+          for nb in pathlib.Path("notebooks").glob("*.ipynb"):
+              try:
+                  json.loads(nb.read_text())
+                  print(f"✅ {nb.name} is valid JSON")
+              except json.JSONDecodeError as e:
+                  print(f"❌ {nb.name}: {e}")
+                  sys.exit(1)
+          EOF
+
+      - name: Check requirements.txt is present
+        run: test -f requirements.txt && echo "✅ requirements.txt found"
